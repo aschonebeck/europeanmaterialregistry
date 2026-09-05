@@ -1,0 +1,1777 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>European Material Registry · EMR</title>
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+
+<!-- Material images referenced dynamically as images/${material}.png in JSX -->
+
+<!-- Per-entry images (override the material default) -->
+
+<script>
+  window.__logo = function() {
+    return (window.__resources && window.__resources.emrLogo) || "images/logo.png";
+  };
+  window.__matImg = function(mat) {
+    var map = {
+      steel: "matSteel", ceramic: "matCeramic", glass: "matGlass",
+      wool: "matWool", wood: "matWood", stone: "matStone", paper: "matPaper"
+    };
+    var id = map[mat];
+    var files = { steel: "images/steel-pillow.jpg", glass: "images/glass-leaded.jpg", wood: "images/wood-ancient.jpg" };
+    return (window.__resources && id && window.__resources[id]) || files[mat] || ("images/" + mat + ".jpg");
+  };
+  window.__entryImg = function(entry) {
+    if (!entry) return "";
+    if (entry.image) {
+      if (window.__resources && window.__resources[entry.image]) return window.__resources[entry.image];
+      return entry.image;
+    }
+    return window.__matImg(entry.material);
+  };
+  window.__MAT_POOL = {
+    steel:   ["images/steel-plate.jpg", "images/steel-studded.jpg", "images/steel-embossed.jpg", "images/steel-pillow.jpg"],
+    ceramic: ["images/ceramic-sunforms.jpg", "images/ceramic-blancdechine.jpg", "images/ceramic.jpg", "images/ceramic-suntiles.jpg", "images/ceramic-plates.jpg", "images/ceramic-mosaic.jpg", "images/ceramic-relief.jpg", "images/ceramic-manganese.jpg", "images/ceramic-platters.jpg", "images/ceramic-crystalline.jpg", "images/ceramic-lustre.jpg", "images/ceramic-moonjars.jpg", "images/ceramic-throwing-large.jpg", "images/ceramic-throwing-small.jpg", "images/ceramic-wheel-finishing.jpg", "images/ceramic-handbuilding.jpg", "images/ceramic-brushes.jpg", "images/ceramic-greenware.jpg", "images/ceramic-studio.jpg", "images/ceramic-tools.jpg"],
+    wool:    ["images/wool-icelandic-fleece.jpg", "images/wool.jpg", "images/wool-gotland-fleece.jpg", "images/wool-drying.jpg", "images/wool-fleece.jpg", "images/wool-nuno.jpg", "images/wool-store.jpg", "images/wool-felt-a.jpg", "images/wool-felt-b.jpg", "images/wool-lace.jpg"],
+    glass:   ["images/glass-leaded.jpg", "images/glass-block.jpg", "images/glass-bubbled.jpg"],
+    stone:   ["images/stone-brac-limestone.avif", "images/stone-marble-veined.jpg", "images/stone.jpg", "images/stone-quarry.jpg", "images/stone-granite.jpg", "images/stone-limestone.jpg", "images/stone-slate.jpg", "images/stone-grinding.jpg", "images/stone-basalt.jpg", "images/stone-iceland.avif"],
+    wood:    ["images/wood-ancient.jpg", "images/wood-birch-grain.jpg", "images/wood.jpg", "images/wood-burr.jpg", "images/wood-construction.jpg", "images/wood-joinery.jpg", "images/wood-stabilised.jpg"],
+    paper:   ["images/paper.jpg", "images/paper-pad.jpg", "images/paper-drying.jpg", "images/paper-tinted.jpg", "images/paper-newsprint.jpg"]
+  };
+  window.__resolveImg = function(path) {
+    if (window.__resources && window.__resources[path]) return window.__resources[path];
+    var mats = { steel: "matSteel", ceramic: "matCeramic", glass: "matGlass", wool: "matWool", wood: "matWood", stone: "matStone", paper: "matPaper" };
+    for (var m in mats) {
+      var def = window.__MAT_POOL[m] && window.__MAT_POOL[m][0];
+      if (def === path && window.__resources && window.__resources[mats[m]]) return window.__resources[mats[m]];
+    }
+    return path;
+  };
+  window.__PROCESS_IMGS = [
+    "images/stone-grinding.jpg", "images/stone-brac-quarry.avif",
+    "images/paper-drying.jpg", "images/wool-drying.jpg", "images/wool-store.jpg",
+    "images/ceramic-throwing-large.jpg", "images/ceramic-throwing-small.jpg",
+    "images/ceramic-wheel-finishing.jpg", "images/ceramic-handbuilding.jpg",
+    "images/ceramic-brushes.jpg", "images/ceramic-greenware.jpg",
+    "images/ceramic-studio.jpg", "images/ceramic-tools.jpg", "images/kaolin-lumps.jpg", "images/brick-handmoulded.jpg", "images/brick-green-drying.jpg",
+    "images/wood-construction.jpg", "images/wood-joinery.jpg", "images/wood-stabilised.jpg",
+    "images/kaolin-heap.jpg"
+  ];
+  window.__entryImg2 = function(entry) {
+    if (!entry) return "";
+    if (entry.image2) {
+      if (window.__resources && window.__resources[entry.image2]) return window.__resources[entry.image2];
+      return entry.image2;
+    }
+    var pool = window.__MAT_POOL[entry.material] || [];
+    if (pool.length < 2) return "";
+    var primary = window.__entryImg(entry);
+    var seed = 0, id = entry.id || "";
+    for (var i = 0; i < id.length; i++) seed += id.charCodeAt(i);
+    var pass, k, raw, cand;
+    for (pass = 0; pass < 2; pass++) {
+      for (k = 0; k < pool.length; k++) {
+        raw = pool[(seed + k) % pool.length];
+        if (pass === 0 && window.__PROCESS_IMGS.indexOf(raw) === -1) continue;
+        cand = window.__resolveImg(raw);
+        if (cand !== primary) return cand;
+      }
+    }
+    return "";
+  };
+</script>
+
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
+
+<script>
+window.REGISTRY = [
+  { id: "SI-024", name: "Bovec Wool Union", place: "Bovec", country: "SI", region: "Goriška", material: "wool", process: "woven", scale: "artisan", founded: 1954, certs: ["EU Organic"], blurb: "Bovška sheep, sub-alpine Julian flocks, undyed yarn and full-milled cloth.", swatch: "wool" , image: "images/wool-lace.jpg" },
+  { id: "CZ-007", name: "Nový Bor Glasswerks", place: "Nový Bor", country: "CZ", region: "Bohemia", material: "glass", process: "mouth-blown", scale: "small-batch", founded: 1754, certs: ["Czech Heritage"], blurb: "Mouth-blown Bohemian lead-free crystal, hand-cut lattice.", swatch: "glass" , image: "images/glass-block.jpg" },
+  { id: "GB-017", name: "Sheffield Cutlery Forge", place: "Sheffield", country: "GB", region: "South Yorkshire", material: "steel", process: "forged", scale: "small-batch", founded: 1842, certs: ["Sheffield Mark"], blurb: "Hand-forged carbon and stainless steel blades, drop-forged.", swatch: "steel" , image: "images/steel-embossed.jpg" },
+  { id: "IT-045", name: "Marmi di Carrara Società", place: "Carrara", country: "IT", region: "Tuscany", material: "stone", process: "quarried", scale: "industrial", founded: 1895, certs: ["ISO 14001"], blurb: "Statuario, Calacatta, Arabescato — block and slab, water-cut.", swatch: "marble" , image: "images/stone-quarry.jpg" },
+  { id: "EE-048", name: "Saaremaa Juniper", place: "Kuressaare", country: "EE", region: "Saare", material: "wood", process: "sawn", scale: "artisan", founded: 1991, certs: ["FSC"], blurb: "Coastal juniper, sliced and stabilised, culinary and craft.", swatch: "birch" , image: "images/wood-burr.jpg" , image2: "images/wood-stabilised.jpg" },
+  { id: "PT-023", name: "Azulejo Factory Lisboa", place: "Lisbon", country: "PT", region: "Lisboa", material: "ceramic", process: "hand-painted", scale: "small-batch", founded: 1849, certs: ["Portugal Sou Eu"], blurb: "Tin-glazed tiles, hand-painted blue-and-white, custom panels.", swatch: "tile" , image: "images/ceramic-suntiles.jpg" , image2: "images/ceramic-brushes.jpg" },
+  { id: "FR-019", name: "Moulin Richard de Bas", place: "Ambert", country: "FR", region: "Auvergne", material: "paper", process: "hand-couched", scale: "artisan", founded: 1326, certs: ["EPV","Monument Historique"], blurb: "Rag paper couched sheet by sheet, petals and ferns set into the pulp.", swatch: "paper", image: "images/paper-tinted.jpg" },
+  { id: "FR-042", name: "Murano-sur-Seine", place: "Biot", country: "FR", region: "Provence-Alpes-Côte d'Azur", material: "glass", process: "mouth-blown", scale: "artisan", founded: 1956, certs: ["EPV"], blurb: "Bubbled glass, Mediterranean palette, hand-gathered.", swatch: "glass" , image: "images/glass-bubbled.jpg" },
+  { id: "SE-022", name: "Gotland Fårull Kooperativ", place: "Visby", country: "SE", region: "Gotland", material: "wool", process: "spun", scale: "small-batch", founded: 1964, certs: ["GOTS","Nordic Swan"], blurb: "Long-fibred Gotland sheep fleece, spun yarn and carded batts, silvery-grey.", swatch: "wool" , image: "images/wool-gotland-fleece.jpg" },
+  { id: "NO-043", name: "Hardanger Slate", place: "Odda", country: "NO", region: "Vestland", material: "stone", process: "quarried", scale: "artisan", founded: 1903, certs: ["Nordic Swan"], blurb: "Hand-split Hardanger roofing slate, natural cleft.", swatch: "limestone" , image: "images/stone-slate.jpg" },
+  { id: "PL-019", name: "Bolesławiec Ceramika", place: "Bolesławiec", country: "PL", region: "Lower Silesia", material: "ceramic", process: "hand-thrown", scale: "small-batch", founded: 1753, certs: ["Protected Designation of Origin"], blurb: "Stamped and sponged stoneware, cobalt peacock pattern.", swatch: "porcelain" , image: "images/ceramic-sunforms.jpg" , image2: "images/ceramic-throwing-large.jpg" },
+  { id: "ES-018", name: "Manises Tile Guild", place: "Manises", country: "ES", region: "Valencia", material: "ceramic", process: "extruded", scale: "small-batch", founded: 1325, certs: ["DOP Manises"], blurb: "Tin-glazed earthenware tile, hand-painted cobalt and manganese.", swatch: "tile" , image: "images/ceramic-manganese.jpg" , image2: "images/ceramic-tools.jpg" },
+  { id: "IS-002", name: "Hafnarfjörður Basalt", place: "Hafnarfjörður", country: "IS", region: "Capital", material: "stone", process: "cast", scale: "artisan", founded: 2011, certs: ["Nordic Swan"], blurb: "Cast basalt fibre, volcanic aggregate panels, Icelandic feedstock.", swatch: "basalt", image: "images/stone-basalt.jpg" },
+  { id: "IS-015", name: "Álafoss Lopi", place: "Mosfellsbær", country: "IS", region: "Capital", material: "wool", process: "spun", scale: "industrial", founded: 1896, certs: ["Nordic Swan"], blurb: "Icelandic sheep fleece, dual-coat thel and tog, unspun lopi and plötulopi.", swatch: "wool" , image: "images/wool-icelandic-fleece.jpg" },
+  { id: "HU-033", name: "Herend Porcelain Atelier", place: "Herend", country: "HU", region: "Veszprém", material: "ceramic", process: "hand-thrown", scale: "small-batch", founded: 1826, certs: ["Hungarikum"], blurb: "Hard-paste porcelain, hand-painted polychrome.", swatch: "porcelain" , image: "images/ceramic-moonjars.jpg" , image2: "images/ceramic-throwing-small.jpg" },
+  { id: "FI-009", name: "Iisalmi Birch Cooperative", place: "Iisalmi", country: "FI", region: "Pohjois-Savo", material: "wood", process: "sawn", scale: "small-batch", founded: 1978, certs: ["FSC","PEFC"], blurb: "Slow-grown Finnish birch, air-dried 18 months, bent or flat.", swatch: "birch" , image2: "images/wood-construction.jpg" , image: "images/wood-birch-grain.jpg" },
+  { id: "CZ-031", name: "Ruční Papírna Velké Losiny", place: "Velké Losiny", country: "CZ", region: "Olomouc", material: "paper", process: "hand-couched", scale: "artisan", founded: 1596, certs: ["Czech Heritage"], blurb: "Cotton rag pulp, hand-couched and loft-dried on the original frames.", swatch: "paper", image: "images/paper-pad.jpg" },
+  { id: "NO-006", name: "Bergen Granite Quarry", place: "Bergen", country: "NO", region: "Vestland", material: "stone", process: "quarried", scale: "industrial", founded: 1867, certs: ["Nordic Swan"], blurb: "Blue-grey Iddefjord granite, cleft face or polished.", swatch: "granite" , image: "images/stone-granite.jpg" },
+  { id: "FR-010", name: "Provence Terracotta", place: "Salernes", country: "FR", region: "Var", material: "ceramic", process: "extruded", scale: "small-batch", founded: 1810, certs: ["EPV"], blurb: "Sun-cured terracotta tomettes, hexagonal and octagonal.", swatch: "tile" , image: "images/ceramic-relief.jpg" },
+  { id: "GB-036", name: "Harris Tweed Authority", place: "Stornoway", country: "GB", region: "Outer Hebrides", material: "wool", process: "woven", scale: "small-batch", founded: 1909, certs: ["Harris Tweed Act 1993","Orb Mark"], blurb: "Virgin wool dyed, spun, and hand-woven in the Outer Hebrides. By law.", swatch: "wool" , image: "images/wool-felt-a.jpg" },
+  { id: "SK-029", name: "Tatra Beech Works", place: "Poprad", country: "SK", region: "Prešov", material: "wood", process: "steam-bent", scale: "small-batch", founded: 1942, certs: ["FSC","PEFC"], blurb: "Steam-bent Tatra beech, Thonet-method, raw or stained.", swatch: "birch" , image2: "images/wood-joinery.jpg" },
+  { id: "DE-035", name: "Meissen Porzellan", place: "Meissen", country: "DE", region: "Saxony", material: "ceramic", process: "cast", scale: "small-batch", founded: 1710, certs: ["German Heritage"], blurb: "Europe's first hard-paste porcelain; crossed-swords mark.", swatch: "porcelain" , image: "images/ceramic-blancdechine.jpg" , image2: "images/ceramic-studio.jpg" },
+  { id: "SE-020", name: "Gotland Limestone Co.", place: "Slite", country: "SE", region: "Gotland", material: "stone", process: "quarried", scale: "industrial", founded: 1919, certs: ["EPD Verified"], blurb: "Silurian limestone, sawn slab, honed or flamed.", swatch: "limestone", image: "images/stone-limestone.jpg" },
+  { id: "GB-027", name: "Shetland Woolbrokers", place: "Lerwick", country: "GB", region: "Shetland", material: "wool", process: "spun", scale: "small-batch", founded: 1901, certs: ["Native Shetland","Real Shetland Wool"], blurb: "Native Shetland fleece in 11 undyed colours; 2-ply and worsted.", swatch: "wool"  },
+  { id: "FR-014", name: "Atelier Porcelaine de Limoges", place: "Limoges", country: "FR", region: "Nouvelle-Aquitaine", material: "ceramic", process: "cast", scale: "small-batch", founded: 1863, certs: ["EPV","Origine France"], blurb: "Kaolin-rich hard-paste porcelain, fired twice at 1400°C.", swatch: "porcelain" , image: "images/ceramic-platters.jpg" , image2: "images/ceramic-greenware.jpg" },
+  { id: "IT-024", name: "Cartiere di Fabriano", place: "Fabriano", country: "IT", region: "Marche", material: "paper", process: "machine-made", scale: "industrial", founded: 1264, certs: ["ISO 14001","FSC"], blurb: "Watermarked stock and lightweight newsprint from the oldest paper town in Europe.", swatch: "paper", image: "images/paper-newsprint.jpg" },
+  { id: "LU-050", name: "Differdange Rolling Mill", place: "Differdange", country: "LU", region: "Esch-sur-Alzette", material: "steel", process: "rolled", scale: "industrial", founded: 1896, certs: ["ResponsibleSteel"], blurb: "Structural H-sections, world's heaviest rolled beams.", swatch: "steel" , image: "images/steel-studded.jpg" },
+  { id: "IE-011", name: "Donegal Tweed House", place: "Ardara", country: "IE", region: "Ulster", material: "wool", process: "woven", scale: "small-batch", founded: 1866, certs: ["Protected Geographical Indication"], blurb: "Hand-woven Donegal tweed, native sheep, vegetable dyes, 48-strand warp.", swatch: "wool" , image: "images/wool-nuno.jpg" },
+  { id: "GR-040", name: "Pentelikon Marble Works", place: "Penteli", country: "GR", region: "Attica", material: "stone", process: "quarried", scale: "industrial", founded: 1830, certs: ["ISO 9001"], blurb: "Pentelic white marble, same seam as the Parthenon.", swatch: "marble" , image: "images/stone-marble-veined.jpg" },
+  { id: "FI-038", name: "Karelia Pine Sawmill", place: "Joensuu", country: "FI", region: "North Karelia", material: "wood", process: "sawn", scale: "industrial", founded: 1906, certs: ["FSC","PEFC"], blurb: "Slow-growth Karelian pine, tangentially sawn, kiln or air.", swatch: "birch" , image2: "images/wood-construction.jpg" },
+  { id: "NL-039", name: "Delft Blauw Atelier", place: "Delft", country: "NL", region: "Zuid-Holland", material: "ceramic", process: "hand-thrown", scale: "artisan", founded: 1653, certs: ["Delft Original"], blurb: "Tin-glazed earthenware, hand-painted cobalt oxide.", swatch: "tile" , image: "images/ceramic-mosaic.jpg" , image2: "images/ceramic-wheel-finishing.jpg" },
+  { id: "AT-044", name: "Loden Tyrol Mill", place: "Innsbruck", country: "AT", region: "Tyrol", material: "wool", process: "fulled", scale: "small-batch", founded: 1868, certs: ["Tiroler Handwerk"], blurb: "Boiled Tyrolean loden, Bergschaf fleece, water-resistant and undyed.", swatch: "wool" },
+  { id: "SE-001", name: "Luleå Järnverk", place: "Luleå", country: "SE", region: "Norrbotten", material: "steel", process: "forged", scale: "industrial", founded: 1941, certs: ["ResponsibleSteel","EU-EMAS"], blurb: "Fossil-free pig iron and rolled plate from the Bothnian coast.", swatch: "steel" , image: "images/steel-plate.jpg" },
+  { id: "DK-041", name: "Petersen Tegl", place: "Broager", country: "DK", region: "Sønderjylland", material: "ceramic", process: "hand-moulded", scale: "small-batch", founded: 1791, certs: ["EPD Verified"], blurb: "Kolumba and hand-moulded brick, coal-fired, clay dug from the fjord bank.", swatch: "tile" , image2: "images/brick-green-drying.jpg" , image: "images/brick-handmoulded.jpg" },
+  { id: "HR-028", name: "Brač Stone Cutters", place: "Pučišća", country: "HR", region: "Dalmatia", material: "stone", process: "quarried", scale: "artisan", founded: 1909, certs: ["UNESCO ICH"], blurb: "Hand-quarried Brač limestone; same stone as the White House cladding claim.", swatch: "limestone"  , image: "images/stone-brac-limestone.avif" , image2: "images/stone-brac-quarry.avif" },
+  { id: "NL-003", name: "Arnhem Paper Works", place: "Arnhem", country: "NL", region: "Gelderland", material: "paper", process: "cast", scale: "small-batch", founded: 1881, certs: ["EU Ecolabel","Blue Angel"], blurb: "Archival cotton rag and abaca papers, 80–640 gsm.", swatch: "paper" },
+  { id: "DK-008", name: "Bornholm Kaolin", place: "Rønne", country: "DK", region: "Bornholm", material: "ceramic", process: "extracted", scale: "industrial", founded: 1948, certs: ["Nordic Swan"], blurb: "Bornholm kaolin, the Nordic seam behind Danish porcelain bodies and glazes.", swatch: "kaolin" , image: "images/kaolin-lumps.jpg", image2: "images/kaolin-heap.jpg" },
+];
+
+window.COUNTRY_NAMES = {
+  SE:"Sweden", FR:"France", LT:"Lithuania", CZ:"Czechia", PT:"Portugal", IT:"Italy", FI:"Finland", NL:"Netherlands", ES:"Spain", DE:"Germany", IS:"Iceland", IE:"Ireland", GR:"Greece", BE:"Belgium", AT:"Austria", NO:"Norway", PL:"Poland", HR:"Croatia", EE:"Estonia", RO:"Romania", DK:"Denmark", CH:"Switzerland", SK:"Slovakia", HU:"Hungary", BG:"Bulgaria", MT:"Malta", SI:"Slovenia", LV:"Latvia", LU:"Luxembourg", CY:"Cyprus", GB:"United Kingdom"
+};
+
+window.COORDS = {
+  "Luleå":[65.58,22.16], "Limoges":[45.83,1.26], "Visby":[57.64,18.30], "Nový Bor":[50.76,14.56], "Lerwick":[60.15,-1.15], "Mosfellsbær":[64.17,-21.69], "Stornoway":[58.21,-6.39],
+  "Évora":[38.57,-7.91], "Carrara":[44.08,10.10], "Iisalmi":[63.56,27.19], "Arnhem":[51.98,5.91],
+  "Manises":[39.49,-0.46], "Freiburg":[48.00,7.85], "Hafnarfjörður":[64.07,-21.96], "Ardara":[54.77,-8.41],
+  "Penteli":[38.05,23.86], "Ghent":[51.05,3.72], "Hallstatt":[47.56,13.65], "Bergen":[60.39,5.32],
+  "Bolesławiec":[51.26,15.57], "Pučišća":[43.35,16.74], "Tallinn":[59.43,24.75], "Sibiu":[45.80,24.14],
+  "Rønne":[55.10,14.70], "La Chaux-de-Fonds":[47.10,6.83], "Poprad":[49.06,20.30], "Herend":[47.13,17.75],
+  "Kazanlak":[42.62,25.40], "Marsalforn":[36.07,14.25], "Bovec":[46.34,13.55], "Riga":[56.95,24.11],
+  "Differdange":[49.52,5.89], "Biot":[43.63,7.09], "Vicenza":[45.55,11.55], "Sheffield":[53.38,-1.47],
+  "Delft":[52.01,4.36], "Slite":[57.71,18.80], "Nicosia":[35.17,33.37], "Joensuu":[62.60,29.76],
+  "Innsbruck":[47.27,11.39], "Salernes":[43.56,6.23], "Kuressaare":[58.25,22.49], "Lisbon":[38.72,-9.14],
+  "Meissen":[51.16,13.47], "Odda":[60.07,6.55],
+  "Rønne":[55.10,14.70], "Broager":[54.88,9.68],
+  "Ambert":[45.55,3.74], "Velké Losiny":[50.03,17.04], "Fabriano":[43.34,12.90]
+};
+</script>
+<script type="text/babel" data-source="components/primitives.jsx">
+const { useState, useEffect, useMemo, useRef } = React;
+
+function Halftone({ className = "", style = {} }) {
+  return <div className={`halftone-paper ${className}`} style={style} />;
+}
+
+function EdgeTicks({ side = "left", count = 14, prefix = "" }) {
+  const items = Array.from({ length: count }, (_, i) => String(i + 1).padStart(2, "0"));
+  return (
+    <div className={`edge-ticks ${side}`}>
+      {items.map((n) => (
+        <div key={n} className="t">{prefix}{n}</div>
+      ))}
+    </div>
+  );
+}
+
+function Marquee({ children }) {
+  return (
+    <div className="marquee">
+      <div className="marquee-track">{children} &nbsp;&middot;&nbsp; {children} &nbsp;&middot;&nbsp; {children}</div>
+    </div>
+  );
+}
+
+function VerticalLabel({ text, className = "", style }) {
+  return <div className={`vertical-label ${className}`} style={style}>{text}</div>;
+}
+
+function LangSwitcher({ lang, setLang }) {
+  const langs = ["EN", "FR", "DE", "IT"];
+  return (
+    <div style={{ display: "flex", gap: 0, border: "1px solid var(--line)" }}>
+      {langs.map((l, i) => (
+        <button
+          key={l}
+          onClick={() => setLang(l)}
+          style={{
+            padding: "6px 10px",
+            background: lang === l ? "var(--ink)" : "transparent",
+            color: lang === l ? "var(--bone)" : "var(--ink)",
+            border: "none",
+            borderLeft: i === 0 ? "none" : "1px solid var(--line)",
+            fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", fontWeight: 500,
+            fontSize: 11,
+            letterSpacing: "0.08em",
+            cursor: "pointer",
+          }}
+        >
+          {l}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const MATERIAL_CODES = {
+  steel: "ST", metal: "ME", ceramic: "CE", textile: "TX", glass: "GL",
+  cork: "CK", stone: "SN", wood: "WD", paper: "PA", mineral: "MN",
+  resin: "RS", botanical: "BT"
+};
+
+const MATERIAL_SWATCH = {
+  steel: "sw-steel", metal: "sw-brass", ceramic: "sw-porcelain", textile: "sw-flax",
+  glass: "sw-glass", cork: "sw-cork", stone: "sw-marble", wood: "sw-birch",
+  paper: "sw-paper", mineral: "sw-salt", resin: "sw-amber", botanical: "sw-rose"
+};
+
+function materialColor(mat) {
+  const map = {
+    steel: "var(--sw-steel)", metal: "var(--sw-brass)", ceramic: "var(--sw-porcelain)",
+    textile: "var(--sw-flax)", glass: "var(--sw-glass)", cork: "var(--sw-cork)",
+    stone: "var(--sw-marble)", wood: "var(--sw-birch)", paper: "var(--sw-paper)",
+    mineral: "var(--sw-salt)", resin: "var(--sw-amber)", botanical: "var(--sw-rose)",
+  };
+  return map[mat] || "var(--bone)";
+}
+
+function patternFor(mat) {
+  const patterns = ["dots-sm", "checker", "stripes-d"];
+  const order = ["steel","ceramic","textile","glass","cork","stone","wood","paper","mineral","metal","resin","botanical"];
+  const idx = order.indexOf(mat);
+  return patterns[idx % patterns.length];
+}
+
+Object.assign(window, {
+  Halftone, EdgeTicks, Marquee, VerticalLabel, LangSwitcher,
+  MATERIAL_CODES, MATERIAL_SWATCH, materialColor, patternFor
+});
+</script>
+<script type="text/babel" data-source="components/registry.jsx">
+const { useState: useState2, useMemo: useMemo2 } = React;
+
+function RegistryHeaderRow() {
+  return (
+    <div className="reg-row" style={{ background: "var(--ink)", color: "var(--bone)", position: "sticky", top: 0, zIndex: 5, cursor: "default", minHeight: 38 }}>
+      <div className="rc col-num mono" style={{ borderColor: "var(--bone)" }}>№</div>
+      <div className="rc col-place mono" style={{ fontSize: 11, borderColor: "var(--bone)", letterSpacing: "0.1em" }}>PLACE / MAKER</div>
+      <div className="rc col-sub mono" style={{ borderColor: "var(--bone)" }}>MATERIAL · PROCESS</div>
+      <div className="rc mono" style={{ borderColor: "var(--bone)", fontSize: 11, letterSpacing: "0.1em" }}>SCALE</div>
+      <div className="rc col-date mono" style={{ fontSize: 11, borderColor: "var(--bone)", letterSpacing: "0.1em", justifyContent: "flex-start" }}>EST.</div>
+      <div className="rc col-cc mono" style={{ borderColor: "var(--bone)" }}>CC</div>
+    </div>
+  );
+}
+
+function RegistryRow({ entry, index, onHover, onSelect, selected }) {
+  const sw = MATERIAL_SWATCH[entry.material] || "sw-paper";
+  const pattern = patternFor(entry.material);
+  return (
+    <div
+      className={`reg-row ${selected ? "selected" : ""}`}
+      onMouseEnter={() => onHover(entry)}
+      onMouseLeave={() => onHover(null)}
+      onClick={() => onSelect(entry)}
+    >
+      <div className="rc col-num">{String(index + 1).padStart(2, "0")}</div>
+      <div className="rc col-place">
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <span>{entry.place}</span>
+          <span className="mono" style={{ fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.7 }}>
+            {entry.name}
+          </span>
+        </div>
+      </div>
+      <div className={`rc col-swatch ${sw}`}>
+        <div className={`${pattern}`} style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", padding: "0 10px" }}>
+          <span className="mono" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", background: "rgba(244,241,232,0.85)", padding: "2px 6px", color: "var(--ink)" }}>
+            {entry.material} · {entry.process}
+          </span>
+        </div>
+      </div>
+      <div className="rc mono" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        {entry.scale}
+      </div>
+      <div className="rc col-date">{entry.founded}</div>
+      <div className="rc col-cc">{entry.country}</div>
+    </div>
+  );
+}
+
+function FilterBar({ filters, setFilters, query, setQuery, results, total }) {
+  const mats = ["all","steel","ceramic","glass","wool","wood","stone","paper"];
+  const scales = ["all","artisan","small-batch","industrial"];
+  return (
+    <div style={{ borderBottom: "1px solid var(--line)", background: "var(--paper)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 0, alignItems: "stretch" }}>
+        <input
+          className="txt"
+          placeholder="Search place, maker, material, process…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          style={{ border: "none", borderRight: "1px solid var(--line)", padding: "14px 16px", fontSize: 14, background: "transparent" }}
+        />
+        <div className="mono" style={{ padding: "14px 16px", borderRight: "1px solid var(--line)", fontSize: 11, letterSpacing: "0.1em", display: "flex", alignItems: "center", textTransform: "uppercase" }}>
+          {results} / {total} entries
+        </div>
+        <div className="mono" style={{ padding: "14px 16px", fontSize: 11, letterSpacing: "0.1em", display: "flex", alignItems: "center", textTransform: "uppercase", gap: 8 }}>
+          <span style={{ width: 8, height: 8, background: "var(--acid)", borderRadius: "50%", display: "inline-block", boxShadow: "0 0 0 1px var(--ink)" }}></span>
+          LIVE INDEX
+        </div>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "10px 14px", borderTop: "1px solid var(--line)" }}>
+        <span className="mono" style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", alignSelf: "center", marginRight: 4, opacity: 0.7 }}>MATERIAL</span>
+        {mats.map((m) => (
+          <button key={m} className={`pill ${filters.material === m ? "active" : ""}`} onClick={() => setFilters((f) => ({ ...f, material: m }))}>
+            {m === "all" ? "all" : m}
+          </button>
+        ))}
+        <span style={{ width: 1, background: "var(--line)", margin: "0 6px" }} />
+        <span className="mono" style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", alignSelf: "center", marginRight: 4, opacity: 0.7 }}>SCALE</span>
+        {scales.map((s) => (
+          <button key={s} className={`pill ${filters.scale === s ? "active" : ""}`} onClick={() => setFilters((f) => ({ ...f, scale: s }))}>
+            {s}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function filterEntries(entries, q, filters) {
+  const ql = q.trim().toLowerCase();
+  return entries.filter((e) => {
+    if (filters.material !== "all" && e.material !== filters.material) return false;
+    if (filters.scale !== "all" && e.scale !== filters.scale) return false;
+    if (!ql) return true;
+    const hay = [e.name, e.place, e.country, e.region, e.material, e.process, e.blurb].join(" ").toLowerCase();
+    return hay.includes(ql);
+  });
+}
+
+function DetailPanel({ entry, onClose }) {
+  if (!entry) return null;
+  const P = window.BENTO_PALETTE || { bg:"#ebe6db", cream:"#f4efe4", card:"#fff", dark:"#2a2a24", ink:"#16160f", line:"#16160f", muted:"#88857a" };
+  const grad1 = `linear-gradient(160deg, #c9bfa8 0%, #a89d84 40%, #6b6050 100%)`;
+  const grad2 = `linear-gradient(200deg, #8e857b 0%, #4a4338 60%, #2a2620 100%)`;
+  return (
+    <div className="detail-overlay" onClick={onClose} style={{ background: "rgba(0,0,0,0.3)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ position: "fixed", inset: 0, background: P.card, color: P.ink, display: "flex", flexDirection: "column", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr 48px", borderBottom: `1px solid ${P.line}`, fontSize: 16 }}>
+          <div style={{ padding: "16px 20px", borderRight: `1px solid ${P.line}`, textTransform: "uppercase", letterSpacing: "-0.005em", fontWeight: 500 }}>European Material Registry</div>
+          <div style={{ padding: "16px 20px", borderRight: `1px solid ${P.line}`, fontVariantNumeric: "tabular-nums" }}>EST. {entry.founded} — {new Date().getFullYear()}</div>
+          <div style={{ padding: "16px 20px", borderRight: `1px solid ${P.line}`, textTransform: "uppercase" }}>{entry.place.toUpperCase()}</div>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 20 }}>≡</button>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 1fr", borderBottom: `1px solid ${P.line}`, fontSize: 15, background: P.cream }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 18, borderRight: `1px solid ${P.line}` }}>✕</button>
+          <div style={{ padding: "12px 20px", borderRight: `1px solid ${P.line}`, textTransform: "capitalize", color: P.muted }}>{entry.material} · {entry.process}</div>
+          <div style={{ padding: "12px 20px", fontWeight: 500 }}>{entry.name}</div>
+        </div>
+
+        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", overflow: "hidden" }}>
+          <div style={{ display: "grid", gridTemplateRows: "1fr 1fr", borderRight: `1px solid ${P.line}` }}>
+            <div style={{ background: grad1, position: "relative", overflow: "hidden", borderBottom: `1px solid ${P.line}` }}>
+              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.45 }} preserveAspectRatio="none" viewBox="0 0 400 300">
+                <path d="M0,170 L60,140 L120,155 L200,100 L280,140 L360,110 L400,125 L400,300 L0,300 Z" fill="rgba(40,30,20,0.35)" />
+                <path d="M0,220 L80,195 L160,215 L250,180 L340,200 L400,190 L400,300 L0,300 Z" fill="rgba(20,15,10,0.4)" />
+              </svg>
+              <div style={{ position: "absolute", bottom: 12, left: 14, fontSize: 11, color: "rgba(255,255,255,0.7)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Image · {entry.place} site</div>
+            </div>
+            <div style={{ background: grad2, position: "relative", overflow: "hidden" }}>
+              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.4 }} preserveAspectRatio="none" viewBox="0 0 400 300">
+                <rect x="40" y="180" width="80" height="60" fill="rgba(0,0,0,0.35)" />
+                <rect x="140" y="200" width="60" height="40" fill="rgba(0,0,0,0.4)" />
+                <rect x="220" y="170" width="100" height="70" fill="rgba(0,0,0,0.3)" />
+              </svg>
+              <div style={{ position: "absolute", bottom: 12, left: 14, fontSize: 11, color: "rgba(255,255,255,0.7)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Image · process detail</div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ flex: 1, padding: "24px 28px", overflowY: "auto", fontSize: 17, lineHeight: 1.45, textWrap: "pretty" }}>
+              <p style={{ margin: "0 0 18px" }}>
+                {entry.name} is a {entry.scale} producer operating in {entry.region}, {window.COUNTRY_NAMES[entry.country]}, with continuous activity since {entry.founded}. {entry.blurb}
+              </p>
+              <p style={{ margin: "0 0 18px" }}>
+                The workshop is listed under the European Material Registry as a verified source for {entry.material} via {entry.process} processes. Certifications on file include {entry.certs.join(", ")}.
+              </p>
+              <p style={{ margin: 0, color: P.muted }}>
+                "{entry.place} has made {entry.material} for generations. To source from here is to participate in a continuity that predates most of the buildings around it." — EMR archivist note
+              </p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", padding: "14px 28px", borderTop: `1px solid ${P.line}`, alignItems: "center" }}>
+              <div style={{ fontSize: 18, fontWeight: 500 }}>Sourcing</div>
+              <button style={{ background: "transparent", border: "none", fontSize: 20, cursor: "pointer" }}>›</button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", borderTop: `1px solid ${P.line}`, fontSize: 13, color: P.muted }}>
+              <div style={{ padding: "14px 28px", lineHeight: 1.5 }}>
+                {entry.name}<br/>
+                {window.COUNTRY_NAMES[entry.country]}. Est. {entry.founded}.<br/>
+                {entry.material} · {entry.process}<br/>
+                <span style={{ textTransform: "uppercase" }}>{entry.scale}</span>
+              </div>
+              <div style={{ padding: "14px 20px", lineHeight: 1.5, fontVariantNumeric: "tabular-nums" }}>
+                Lead time<br/>4–12<br/>weeks
+              </div>
+              <div style={{ padding: "14px 20px", lineHeight: 1.5 }}>
+                Registry ref.<br/>{entry.id}<br/>CC-BY 4.0
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { DetailPanel });
+</script>
+<script type="text/babel" data-source="components/map.jsx">
+function MapView({ entries, onSelect, hover, setHover, selected }) {
+  const hostRef = React.useRef(null);
+  const mapRef = React.useRef(null);
+  const markersRef = React.useRef({});
+  const cbRef = React.useRef({ onSelect, setHover });
+  cbRef.current = { onSelect, setHover };
+
+  React.useEffect(() => {
+    if (!hostRef.current || mapRef.current) return;
+    const host = hostRef.current;
+    const map = L.map(host, {
+      center: [54, 10],
+      zoom: 4,
+      zoomControl: false,
+      attributionControl: true,
+      worldCopyJump: false,
+      minZoom: 2,
+      maxZoom: 12,
+      zoomSnap: 0.25,
+    });
+    fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json")
+      .then(r => r.json())
+      .then(topo => {
+        if (!mapRef.current) return;
+        const bbox = (geom) => {
+          let w = 180, e = -180, s = 90, n = -90;
+          const walk = (c) => {
+            if (typeof c[0] === "number") {
+              if (c[0] < w) w = c[0];
+              if (c[0] > e) e = c[0];
+              if (c[1] < s) s = c[1];
+              if (c[1] > n) n = c[1];
+              return;
+            }
+            for (let i = 0; i < c.length; i++) walk(c[i]);
+          };
+          if (!geom || !geom.coordinates) return null;
+          walk(geom.coordinates);
+          return e < w ? null : { w, e, s, n };
+        };
+        const inFrame = (f) => {
+          const b = bbox(f.geometry);
+          if (!b) return false;
+          if (b.e - b.w > 90) return false;
+          return b.e > -32 && b.w < 46 && b.n > 30 && b.s < 74;
+        };
+        const features = [];
+        const geoms = topo.objects.countries.geometries;
+        for (let i = 0; i < geoms.length; i++) {
+          const f = topojson.feature(topo, geoms[i]);
+          if (inFrame(f)) features.push(f);
+        }
+        const ISLANDS = {
+          Gotland: [[57.95,18.75],[57.60,18.98],[57.25,18.72],[57.03,18.20],[57.35,18.10],[57.72,18.30]],
+          Bornholm: [[55.30,14.68],[55.13,15.15],[54.99,15.08],[55.00,14.70],[55.15,14.66]],
+          Shetland: [[60.85,-0.88],[60.60,-0.95],[60.15,-1.10],[59.87,-1.28],[60.15,-1.45],[60.60,-1.35]],
+          Hebrides: [[58.52,-6.20],[58.20,-6.20],[57.75,-6.85],[57.90,-7.15],[58.25,-6.95],[58.50,-6.60]],
+          Saaremaa: [[58.60,22.10],[58.50,23.00],[58.20,23.00],[57.92,22.05],[58.25,21.85]],
+          Oland: [[57.37,17.05],[56.95,16.85],[56.20,16.40],[56.45,16.35],[57.10,16.70]],
+          Gozo: [[36.09,14.18],[36.05,14.32],[36.01,14.30],[36.02,14.18]],
+        };
+        Object.keys(ISLANDS).forEach(k => {
+          features.push({
+            type: "Feature",
+            properties: { name: k, synthetic: true },
+            geometry: { type: "Polygon", coordinates: [ISLANDS[k].map(p => [p[1], p[0]]).concat([[ISLANDS[k][0][1], ISLANDS[k][0][0]]])] },
+          });
+        });
+        const fc = { type: "FeatureCollection", features };
+        const layer = L.geoJSON(fc, {
+          pane: "tilePane",
+          style: { fillColor: "#eeeeec", fillOpacity: 1, color: "#dcdcd8", weight: 0.8 },
+          interactive: false,
+        }).addTo(mapRef.current);
+
+        const wanted = new Set(
+          Array.from(new Set(window.REGISTRY.map(e => e.country)))
+            .map(cc => window.COUNTRY_NAMES[cc])
+            .filter(Boolean)
+        );
+        const biggestRing = (geom) => {
+          const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
+          let best = null, bestArea = -1;
+          polys.forEach(p => {
+            const ring = p[0];
+            let a = 0;
+            for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+              a += ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+            }
+            a = Math.abs(a / 2);
+            if (a > bestArea) { bestArea = a; best = ring; }
+          });
+          if (!best) return null;
+          let cx = 0, cy = 0, signed = 0;
+          for (let i = 0, j = best.length - 1; i < best.length; j = i++) {
+            const cross = best[j][0] * best[i][1] - best[i][0] * best[j][1];
+            signed += cross;
+            cx += (best[j][0] + best[i][0]) * cross;
+            cy += (best[j][1] + best[i][1]) * cross;
+          }
+          if (!signed) return null;
+          return { at: [cy / (3 * signed), cx / (3 * signed)], area: bestArea };
+        };
+        const anchors = {
+          "Norway": [62.8, 7.4],
+          "Sweden": [60.2, 14.4],
+          "Portugal": [40.9, -9.9],
+          "Spain": [39.9, -4.2],
+          "Italy": [43.0, 12.4],
+          "Greece": [39.3, 22.2],
+          "Denmark": [56.2, 9.2],
+          "Finland": [63.6, 26.8],
+          "United Kingdom": [53.4, -2.2],
+          "Ireland": [53.3, -8.6],
+          "Croatia": [45.2, 16.4],
+        };
+        const labels = [];
+        const weight = {};
+        window.REGISTRY.forEach(e => {
+          const n = window.COUNTRY_NAMES[e.country];
+          if (n) weight[n] = (weight[n] || 0) + 1;
+        });
+        layer.eachLayer(l => {
+          const name = l.feature && l.feature.properties && l.feature.properties.name;
+          if (!name || l.feature.properties.synthetic || !wanted.has(name)) return;
+          const r = biggestRing(l.feature.geometry);
+          if (!r) return;
+          const bb = bbox(l.feature.geometry);
+          const mk = L.marker(anchors[name] || r.at, {
+            interactive: false,
+            keyboard: false,
+            icon: L.divIcon({ className: "emr-country-label", html: name, iconSize: null }),
+          }).addTo(mapRef.current);
+          labels.push({ mk, bb, area: r.area, rank: r.area + (weight[name] || 0) * 2 });
+        });
+        labels.sort((a, b) => b.rank - a.rank);
+        const overlaps = (a, b) =>
+          a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+        const dirs = [[0, 0]];
+        for (const ang of [90, 270, 0, 180, 45, 135, 225, 315]) {
+          const t = ang * Math.PI / 180;
+          dirs.push([Math.cos(t), Math.sin(t)]);
+        }
+        const syncLabels = () => {
+          const map = mapRef.current;
+          if (!map) return;
+          const pins = [];
+          window.REGISTRY.forEach(e => {
+            const c = window.COORDS[e.place];
+            if (!c) return;
+            const p = map.latLngToContainerPoint(c);
+            pins.push({ left: p.x - 9, right: p.x + 9, top: p.y - 9, bottom: p.y + 9 });
+          });
+          const taken = [];
+          let unmeasured = false;
+          labels.forEach(({ mk, bb, area }) => {
+            const el = mk.getElement();
+            if (!el) return;
+            el.style.display = "";
+            const w = el.offsetWidth, h = el.offsetHeight;
+            if (!w || !h) { unmeasured = true; return; }
+            if (area < 1.5 && map.getZoom() < 6) { el.style.display = "none"; return; }
+            const reach = Math.max(11, Math.min(16, h + 3));
+            const shift = [];
+            for (const d of dirs) {
+              if (d[0] === 0 && d[1] === 0) { shift.push([0, 0]); continue; }
+              shift.push([Math.round(d[0] * reach * 0.6), Math.round(d[1] * reach * 0.6)]);
+            }
+            for (const d of dirs) {
+              if (d[0] === 0 && d[1] === 0) continue;
+              shift.push([Math.round(d[0] * reach), Math.round(d[1] * reach)]);
+            }
+            const p = map.latLngToContainerPoint(mk.getLatLng());
+            let placed = null, fallback = null;
+            for (let i = 0; i < shift.length; i++) {
+              const dx = shift[i][0], dy = shift[i][1];
+              const left = p.x + dx - w / 2, top = p.y + dy - h / 2;
+              const box = { left: left - 1, right: left + w + 1, top: top - 1, bottom: top + h + 1 };
+              if (taken.some(t => overlaps(box, t))) continue;
+              const cand = { dx: dx - w / 2, dy: dy - h / 2, box };
+              if (!fallback) fallback = cand;
+              if (pins.some(q => overlaps(box, q))) continue;
+              placed = cand;
+              break;
+            }
+            const use = placed || fallback;
+            if (!use) { el.style.display = "none"; return; }
+            el.style.marginLeft = use.dx + "px";
+            el.style.marginTop = use.dy + "px";
+            taken.push(use.box);
+          });
+          if (unmeasured) setTimeout(syncLabels, 120);
+        };
+        let queued = 0;
+        const queueLabels = () => {
+          if (queued) return;
+          queued = requestAnimationFrame(() => { queued = 0; syncLabels(); });
+        };
+        mapRef.current.on("zoomend moveend", queueLabels);
+        setTimeout(syncLabels, 300);
+        syncLabels();
+      })
+      .catch(() => {});
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+    mapRef.current = map;
+    map.attributionControl.addAttribution("Geometry: Natural Earth");
+
+    const lats = [], lngs = [];
+    Object.keys(window.COORDS).forEach(k => {
+      const c = window.COORDS[k];
+      if (c) { lats.push(c[0]); lngs.push(c[1]); }
+    });
+    const BOUNDS = lats.length
+      ? [[Math.min(...lats) - 1.5, Math.min(...lngs) - 1.5],
+         [Math.max(...lats) + 1.5, Math.max(...lngs) + 1.5]]
+      : [[35, -24], [67, 34]];
+    let framed = false, touched = false, lastW = 0, lastH = 0;
+    const fit = () => map.fitBounds(BOUNDS, { animate: false, padding: [14, 14] });
+    const sync = () => {
+      const m = mapRef.current;
+      if (!m) return;
+      m.invalidateSize();
+      const w = host.clientWidth, h = host.clientHeight;
+      if (w === 0 || h === 0) return;
+      const reshaped = Math.abs(w - lastW) > 2 || Math.abs(h - lastH) > 2;
+      lastW = w; lastH = h;
+      if (!framed || (reshaped && !touched)) { framed = true; fit(); }
+    };
+    const markTouched = () => { touched = true; };
+    host.addEventListener("wheel", markTouched, { passive: true });
+    host.addEventListener("pointerdown", markTouched);
+    const raf1 = requestAnimationFrame(() => { sync(); });
+    const raf2 = requestAnimationFrame(() => requestAnimationFrame(sync));
+    const t = setTimeout(sync, 250);
+    const ro = new ResizeObserver(() => sync());
+    ro.observe(host);
+    return () => {
+      cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); clearTimeout(t);
+      ro.disconnect();
+      host.removeEventListener("wheel", markTouched);
+      host.removeEventListener("pointerdown", markTouched);
+      map.remove(); mapRef.current = null;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    Object.values(markersRef.current).forEach(m => m.remove());
+    markersRef.current = {};
+    entries.forEach(e => {
+      const ll = window.COORDS[e.place];
+      if (!ll) return;
+      const m = L.circleMarker([ll[0], ll[1]], {
+        radius: 5,
+        color: "#ffffff",
+        weight: 1.5,
+        fillColor: "#111111",
+        fillOpacity: 1,
+      }).addTo(map);
+      m.on("mouseover", () => cbRef.current.setHover(e));
+      m.on("mouseout", () => cbRef.current.setHover(null));
+      m.on("click", () => cbRef.current.onSelect(e));
+      markersRef.current[e.id] = m;
+    });
+  }, [entries]);
+
+  React.useEffect(() => {
+    const hotId = hover?.id || selected?.id;
+    Object.entries(markersRef.current).forEach(([id, m]) => {
+      const hot = id === hotId;
+      m.setStyle({ fillColor: hot ? "#111" : "#111", weight: hot ? 3 : 1.5 });
+      m.setRadius(hot ? 8 : 5);
+    });
+  }, [hover, selected, entries]);
+
+  return (
+    <div style={{ position: "absolute", inset: 0, background: "#ffffff" }}>
+      <div ref={hostRef} className="emr-map" style={{ position: "absolute", inset: 0 }} />
+    </div>
+  );
+}
+
+Object.assign(window, { MapView });
+</script>
+<script type="text/babel" data-source="components/screens.jsx">
+function Landing({ setScreen, registry }) {
+  const countries = [...new Set(registry.map(e => e.country))].length;
+  const materials = [...new Set(registry.map(e => e.material))].length;
+  return (
+    <div style={{ position: "relative", minHeight: "100vh" }}>
+      <Marquee>
+        OPEN ATLAS · SPECULATIVE PUBLIC INFRASTRUCTURE · VOL.03 · SPRING 26 · SOURCE WITHIN EUROPE · {registry.length} ENTRIES · {countries} COUNTRIES · {materials} MATERIAL CLASSES
+      </Marquee>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 0 }}>
+        <div style={{ padding: "40px 48px 28px", borderBottom: "1px solid var(--line)", position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 40 }}>
+            <div style={{ flex: 1 }}>
+              <div className="mono" style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 20 }}>
+                European Material Registry · EMR · est. 2026
+              </div>
+              <h1 className="masthead-logo">
+                WHERE<br/>
+                THINGS<br/>
+                <span style={{ fontWeight: 400, textTransform: "uppercase" }}>Are Made</span><br/>
+                IN EUROPE
+              </h1>
+            </div>
+            <div style={{ width: 320, flexShrink: 0, paddingTop: 28 }}>
+              <div className="mono" style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10, opacity: 0.65 }}>
+                Vol. 03 — Spring 2026
+              </div>
+              <div style={{ fontSize: 18, lineHeight: 1.4, textWrap: "pretty", marginBottom: 18 }}>
+                An open, citizen-maintained atlas of material production on the continent — steel in Luleå, porcelain in Limoges, linen in Lithuania, glass in Bohemia.
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 500, letterSpacing: "-0.01em", lineHeight: 1.25, marginBottom: 22 }}>
+                For small producers, designers, and architects who want to source close.
+              </div>
+              <div style={{ display: "flex", gap: 0 }}>
+                <button className="btn-block inverse" onClick={() => setScreen("registry")}>Enter the index →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ borderBottom: "1px solid var(--line)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 0 }}>
+            {registry.slice(0, 6).map((e, i) => {
+              const sw = MATERIAL_SWATCH[e.material];
+              return (
+                <div key={e.id} className={sw} style={{ padding: "22px 20px", borderRight: i % 3 !== 2 ? "1px solid var(--line)" : "none", borderBottom: i < 3 ? "1px solid var(--line)" : "none", minHeight: 180, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <span className="mono" style={{ fontSize: 10, letterSpacing: "0.12em" }}>{String(i+1).padStart(2,"0")} / {e.id}</span>
+                    <span className="mono" style={{ fontSize: 10, letterSpacing: "0.08em", background: "var(--ink)", color: "var(--bone)", padding: "2px 6px" }}>{e.country}</span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 34, fontWeight: 500, lineHeight: 0.95, letterSpacing: "-0.02em", marginBottom: 4 }}>{e.place}</div>
+                    <div className="mono" style={{ fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                      {e.material} · {e.process}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{ padding: "32px 48px", borderBottom: "1px solid var(--line)", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 32 }}>
+          <InfoStat n="01" k="Open data" v="Every entry is CC-BY. Download the CSV, fork the atlas, mirror the archive." />
+          <InfoStat n="02" k="Community audited" v="Volunteer archivists verify entries quarterly. Flagged listings are re-reviewed publicly." />
+          <InfoStat n="03" k="No placement fees" v="Inclusion is never paid. Ranking is alphabetical by region, then founded date." />
+          <InfoStat n="04" k="Scope" v="Raw materials, primary processors, and named ateliers with a permanent location in Europe." />
+        </div>
+
+        <div style={{ padding: "28px 48px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--line)" }}>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button className="btn-block inverse" onClick={() => setScreen("registry")}>↳ Browse index</button>
+            <button className="btn-block" onClick={() => setScreen("map")}>↳ Open map view</button>
+            <button className="btn-block" onClick={() => setScreen("submit")}>↳ Submit a maker</button>
+          </div>
+          <div className="mono" style={{ fontSize: 10, letterSpacing: "0.12em", opacity: 0.65 }}>
+            ISSN 9999-XXXX · RÉGISTRE EUROPÉEN DES MATÉRIAUX · EUROPÄISCHES MATERIALREGISTER
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoStat({ n, k, v }) {
+  return (
+    <div>
+      <div className="mono" style={{ fontSize: 11, letterSpacing: "0.16em", opacity: 0.6, marginBottom: 6 }}>{n}</div>
+      <div style={{ fontSize: 18, fontWeight: 500, marginBottom: 6 }}>{k}</div>
+      <div style={{ fontSize: 13, lineHeight: 1.5, opacity: 0.8 }}>{v}</div>
+    </div>
+  );
+}
+
+function SubmitForm({ setScreen }) {
+  const [step, setStep] = React.useState(1);
+  const [form, setForm] = React.useState({ place: "", country: "", name: "", material: "", process: "", scale: "", founded: "", blurb: "", email: "" });
+  const [submitted, setSubmitted] = React.useState(false);
+
+  function update(k, v) { setForm((f) => ({ ...f, [k]: v })); }
+  const canAdvance = {
+    1: form.place && form.country && form.name,
+    2: form.material && form.process && form.scale,
+    3: form.founded && form.blurb,
+    4: form.email
+  };
+
+  if (submitted) {
+    return (
+      <div style={{ maxWidth: 720, margin: "80px auto", padding: "48px 32px", border: "1px solid var(--line)", background: "var(--bone)", textAlign: "center" }}>
+        <div className="mono" style={{ fontSize: 11, letterSpacing: "0.16em", marginBottom: 16 }}>ENTRY QUEUED FOR REVIEW</div>
+        <div style={{ fontSize: 42, fontWeight: 500, lineHeight: 1, marginBottom: 16 }}>Thank you.</div>
+        <div style={{ fontSize: 16, lineHeight: 1.5, marginBottom: 28, opacity: 0.8, textWrap: "pretty" }}>
+          A volunteer archivist will review <b>{form.name}</b> of {form.place} within 14 days. You'll receive an audit trail at {form.email}.
+        </div>
+        <button className="btn-block inverse" onClick={() => setScreen("registry")}>↳ Back to the index</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "40px 48px", maxWidth: 860, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24 }}>
+        <div>
+          <div className="mono" style={{ fontSize: 11, letterSpacing: "0.16em", marginBottom: 8 }}>FORM 27-EMR</div>
+          <h2 style={{ fontSize: 52, fontWeight: 500, lineHeight: 1.08, letterSpacing: "-0.02em", margin: 0, paddingBottom: 6 }}>
+            Submit a Maker
+          </h2>
+        </div>
+        <div className="mono" style={{ fontSize: 11, letterSpacing: "0.12em" }}>STEP 0{step} / 04</div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 0, border: "1px solid var(--line)", marginBottom: 28 }}>
+        {[1,2,3,4].map((s) => (
+          <div key={s} style={{ padding: "10px 12px", borderRight: s < 4 ? "1px solid var(--line)" : "none", background: s <= step ? "var(--ink)" : "transparent", color: s <= step ? "var(--bone)" : "var(--ink)" }}>
+            <span className="mono" style={{ fontSize: 10, letterSpacing: "0.1em" }}>
+              {["LOCATION","MATERIAL","HERITAGE","CONTACT"][s-1]}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ border: "1px solid var(--line)", background: "var(--bone)", padding: "28px" }}>
+        {step === 1 && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <Field label="Place / town" value={form.place} onChange={(v) => update("place", v)} placeholder="e.g. Luleå" />
+            <Field label="Country code" value={form.country} onChange={(v) => update("country", v.toUpperCase().slice(0,2))} placeholder="e.g. SE" />
+            <div style={{ gridColumn: "1 / -1" }}>
+              <Field label="Maker / atelier / mill name" value={form.name} onChange={(v) => update("name", v)} placeholder="Full trade name" />
+            </div>
+          </div>
+        )}
+        {step === 2 && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+            <Select label="Material" value={form.material} onChange={(v) => update("material", v)} options={["steel","ceramic","glass","wool","wood","stone","paper"]} />
+            <Field label="Process" value={form.process} onChange={(v) => update("process", v)} placeholder="e.g. mouth-blown" />
+            <Select label="Scale" value={form.scale} onChange={(v) => update("scale", v)} options={["artisan","small-batch","industrial"]} />
+          </div>
+        )}
+        {step === 3 && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
+            <Field label="Year established" value={form.founded} onChange={(v) => update("founded", v)} placeholder="e.g. 1897" />
+            <div>
+              <label className="mono" style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Description (1–2 sentences)</label>
+              <textarea
+                value={form.blurb}
+                onChange={(e) => update("blurb", e.target.value)}
+                placeholder="What do they make and how?"
+                style={{ width: "100%", minHeight: 120, padding: "10px 12px", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", fontSize: 13, background: "var(--paper)", border: "1px solid var(--line)", borderRadius: 0, resize: "vertical" }}
+              />
+            </div>
+          </div>
+        )}
+        {step === 4 && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
+            <Field label="Your email (for audit)" value={form.email} onChange={(v) => update("email", v)} placeholder="archivist@example.eu" />
+            <div className="mono" style={{ fontSize: 11, letterSpacing: "0.08em", lineHeight: 1.6, background: "var(--paper)", padding: "12px 14px", border: "1px solid var(--line)" }}>
+              SUBMITTING AS CC-BY 4.0. ENTRY WILL BE PUBLIC, EDITABLE, AND ATTRIBUTED TO YOUR HANDLE. REVIEW WITHIN 14 DAYS.
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24 }}>
+          <button className="btn-block" onClick={() => step > 1 ? setStep(step - 1) : setScreen("landing")}>
+            ← {step === 1 ? "Cancel" : "Back"}
+          </button>
+          {step < 4 ? (
+            <button
+              className="btn-block inverse"
+              onClick={() => canAdvance[step] && setStep(step + 1)}
+              style={{ opacity: canAdvance[step] ? 1 : 0.4, cursor: canAdvance[step] ? "pointer" : "not-allowed" }}
+            >
+              Next →
+            </button>
+          ) : (
+            <button
+              className="btn-block inverse"
+              onClick={() => canAdvance[4] && setSubmitted(true)}
+              style={{ opacity: canAdvance[4] ? 1 : 0.4, cursor: canAdvance[4] ? "pointer" : "not-allowed" }}
+            >
+              Submit entry →
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, value, onChange, placeholder }) {
+  return (
+    <div>
+      <label className="mono" style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>{label}</label>
+      <input className="txt" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+    </div>
+  );
+}
+function Select({ label, value, onChange, options }) {
+  return (
+    <div>
+      <label className="mono" style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>{label}</label>
+      <select className="txt" value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">—</option>
+        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </div>
+  );
+}
+
+Object.assign(window, { Landing, SubmitForm });
+</script>
+<script type="text/babel" data-source="components/fund.jsx">
+const FUND = {
+  paper: "#ffffff",
+  ink: "#111111",
+  line: "#111111",
+  muted: "#6b6b6b",
+  canvas: "#0f1117",   // dark navy-ish
+  canvas2: "#141621",
+  hairline: "rgba(17,17,17,0.15)",
+};
+
+function EMRMark({ size = 20 }) {
+  const RY = 0.5, TILT = -22 * Math.PI / 180, SR = 0.13, GAP = 11;
+  const pts = [];
+  for (let i = 0; i < 12; i++) {
+    const a = i * Math.PI / 6 - Math.PI / 2;
+    const px = Math.cos(a), py = RY * Math.sin(a);
+    pts.push({
+      x: px * Math.cos(TILT) - py * Math.sin(TILT),
+      y: px * Math.sin(TILT) + py * Math.cos(TILT),
+    });
+  }
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  pts.forEach(q => {
+    x0 = Math.min(x0, q.x - SR); x1 = Math.max(x1, q.x + SR);
+    y0 = Math.min(y0, q.y - SR); y1 = Math.max(y1, q.y + SR);
+  });
+  const k = Math.min(90 / (x1 - x0), 90 / (y1 - y0));
+  const ox = 48 - ((x0 + x1) / 2) * k, oy = 48 - ((y0 + y1) / 2) * k;
+  const R = SR * k;
+  const d = pts.filter((q, i) => i !== GAP).map(q => {
+    const cx = q.x * k + ox, cy = q.y * k + oy;
+    let p = "";
+    for (let j = 0; j < 10; j++) {
+      const rr = j % 2 ? R * 0.382 : R, a = (j / 10) * Math.PI * 2 - Math.PI / 2;
+      p += (j ? "L" : "M") + (cx + Math.cos(a) * rr).toFixed(2) + "," + (cy + Math.sin(a) * rr).toFixed(2);
+    }
+    return p + "Z";
+  }).join("");
+  return (
+    <svg viewBox="0 0 96 96" width={size} height={size} fill="currentColor" aria-hidden="true" style={{ display: "block", flex: "none" }}>
+      <path d={d}></path>
+    </svg>
+  );
+}
+
+function FundNav({ screen, setScreen }) {
+  const items = [
+    { id: "landing", label: "Atlas" },
+    { id: "registry", label: "Index" },
+    { id: "map", label: "Geography" },
+    { id: "submit", label: "Submit" },
+  ];
+  return (
+    <div style={{ background: FUND.paper, borderBottom: `1px solid ${FUND.line}`, fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", position: "sticky", top: 0, zIndex: 50 }}>
+      <div className="emr-nav" style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", padding: "14px 22px", alignItems: "center", fontSize: 15 }}>
+        <button onClick={() => setScreen("landing")} style={{ background: "transparent", border: "none", padding: 0, textAlign: "left", cursor: "pointer", fontSize: 15, color: FUND.ink, display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit" }}>
+          <img src={window.__logo()} alt="" style={{ height: 20, width: "auto", display: "block", flex: "none", transform: "scaleX(-1)" }} />
+          European Material Registry
+        </button>
+        <div style={{ display: "flex", gap: 36, justifyContent: "center" }}>
+          {items.slice(1, 3).map(it => (
+            <button key={it.id} onClick={() => setScreen(it.id)}
+              style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", fontSize: 15, color: FUND.ink, textDecoration: screen === it.id ? "underline" : "none", textUnderlineOffset: 4 }}>
+              {it.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <button onClick={() => setScreen("submit")} style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", fontSize: 15, color: FUND.ink, textDecoration: screen === "submit" ? "underline" : "none", textUnderlineOffset: 4 }}>
+            Submit
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FundRegistry({ filtered, total, query, setQuery, filters, setFilters, selected, setSelected, hover, setHover, showGrid }) {
+  const allMats = ["all","steel","ceramic","glass","wool","wood","stone","paper"];
+
+  function toggleMat(m) {
+    setFilters(f => ({ ...f, material: f.material === m ? "all" : m }));
+  }
+
+  return (
+    <div className="emr-split" style={{ display: "grid", gridTemplateColumns: showGrid ? "minmax(480px, 1fr) 1.3fr" : "1fr", height: "calc(100vh - 51px)", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", background: FUND.paper }}>
+      <div style={{ display: "flex", flexDirection: "column", borderRight: showGrid ? `1px solid ${FUND.line}` : "none", overflow: "hidden" }}>
+        <div style={{ borderBottom: `1px solid ${FUND.line}`, padding: "10px 22px" }}>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search place, maker, material…"
+            style={{ width: "100%", border: "none", outline: "none", background: "transparent", fontSize: 15, fontFamily: "inherit", padding: "4px 0" }}
+          />
+        </div>
+        <div style={{ borderBottom: `1px solid ${FUND.line}`, padding: "10px 22px", fontSize: 14, lineHeight: 1.5 }}>
+          {allMats.map((m, i) => (
+            <span key={m}>
+              <button
+                onClick={() => toggleMat(m)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  fontSize: 14,
+                  color: FUND.ink,
+                  textDecoration: (filters.material === m || (m === "all" && filters.material === "all")) ? "underline" : "none",
+                  textUnderlineOffset: 3,
+                  textTransform: m === "all" ? "capitalize" : "capitalize",
+                }}
+              >
+                {m === "all" ? "All" : m.charAt(0).toUpperCase() + m.slice(1)}
+              </button>
+              {i < allMats.length - 1 && <span style={{ color: FUND.ink }}>, </span>}
+            </span>
+          ))}
+          <span style={{ float: "right", color: FUND.muted, fontSize: 13 }}>{filtered.length} / {total}</span>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          {filtered.map(e => (
+            <FundRow key={e.id} entry={e} onSelect={setSelected} onHover={setHover} selected={selected?.id === e.id} hovered={hover?.id === e.id} />
+          ))}
+          {filtered.length === 0 && (
+            <div style={{ padding: "40px 22px", color: FUND.muted, fontSize: 13 }}>No entries match these filters.</div>
+          )}
+        </div>
+
+        <div style={{ borderTop: `1px solid ${FUND.line}`, padding: "10px 22px", display: "flex", justifyContent: "space-between", fontSize: 12, color: FUND.muted }}>
+          <span>© 2026 EMR</span>
+          <span>registry@emr.eu</span>
+        </div>
+      </div>
+
+      {showGrid && (
+        <div style={{ background: FUND.canvas, overflowY: "auto", padding: 22 }}>
+          <FundGallery entries={filtered} onSelect={setSelected} hover={hover} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FundRow({ entry, onSelect, onHover, selected, hovered }) {
+  return (
+    <div
+      onMouseEnter={() => onHover(entry)}
+      onMouseLeave={() => onHover(null)}
+      onClick={() => onSelect(entry)}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1.2fr 1.2fr",
+        borderBottom: `1px solid ${FUND.line}`,
+        padding: "12px 22px",
+        cursor: "pointer",
+        background: selected || hovered ? "#f2f0eb" : "transparent",
+        fontSize: 14,
+        alignItems: "center",
+        minHeight: 44,
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <span style={{ color: FUND.ink, fontWeight: 400 }}>{entry.name}</span>
+        <span style={{ color: FUND.muted, fontSize: 12 }}>{entry.place}, {window.COUNTRY_NAMES[entry.country]}</span>
+      </div>
+      <div style={{ color: FUND.ink, textTransform: "capitalize" }}>
+        {entry.material}{entry.scale !== "industrial" ? `, ${entry.scale}` : ""}
+      </div>
+    </div>
+  );
+}
+
+function FundGallery({ entries, onSelect, hover, limit }) {
+  const resident = entries[0];
+  const featured = hover || resident;
+  let rest = entries.slice(1);
+  if (limit) rest = rest.slice(0, limit - 1);
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      {featured && <FundTile entry={featured} big onClick={() => onSelect(featured)} />}
+      {rest.map(e => (
+        <FundTile
+          key={e.id}
+          entry={e}
+          active={hover?.id === e.id}
+          onClick={() => onSelect(e)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function FundTile({ entry, big, active, onClick }) {
+  const img = window.__entryImg(entry);
+  return (
+    <div onClick={onClick} style={{
+      gridRow: big ? "span 2" : "auto",
+      aspectRatio: big ? "auto" : "4 / 3",
+      minHeight: big ? 260 : "auto",
+      background: `#222 url(${img}) center/cover no-repeat`,
+      borderRadius: 2,
+      position: "relative",
+      overflow: "hidden",
+      cursor: "pointer",
+      outline: active ? "1px solid rgba(255,255,255,0.55)" : "none",
+      outlineOffset: active ? "-1px" : "0",
+    }}>
+      {big ? (
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "14px 15px", color: "#fff", fontFamily: "'Helvetica Neue', sans-serif", background: "linear-gradient(to top, rgba(0,0,0,0.65), transparent)" }}>
+          <div style={{ fontSize: 17, letterSpacing: "-0.01em", lineHeight: 1.2 }}>{entry.name}</div>
+          <div style={{ fontSize: 11, marginTop: 4, opacity: 0.85, textTransform: "capitalize", lineHeight: 1.45 }}>
+            {entry.material} · {entry.process}<br />{entry.place}, {window.COUNTRY_NAMES[entry.country]} · Est. {entry.founded}
+          </div>
+        </div>
+      ) : (
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "10px 12px", color: "rgba(255,255,255,0.95)", fontSize: 11, fontFamily: "'Helvetica Neue', sans-serif", display: "flex", justifyContent: "space-between", background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }}>
+          <span>{entry.place}, {entry.country}</span>
+          <span style={{ opacity: 0.75 }}>{entry.id}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+Object.assign(window, { EMRMark, FundNav, FundRegistry, FundRow, FundGallery, FundTile, FUND });
+</script>
+<script type="text/babel" data-source="components/fund_landing.jsx">
+function FundLanding({ setScreen, registry, onSelect }) {
+  const [cursor, setCursor] = React.useState(null);
+  const places = React.useMemo(
+    () => [...registry].sort((a, b) => a.place.localeCompare(b.place)),
+    [registry]
+  );
+  const shown = cursor || places[0];
+  const img = window.__entryImg(shown);
+
+  return (
+    <div className="emr-split" style={{ background: FUND.paper, color: FUND.ink, height: "calc(100vh - 51px)", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", display: "grid", gridTemplateColumns: "minmax(520px, 1fr) 1fr" }}>
+
+      <div style={{ borderRight: `1px solid ${FUND.line}`, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+        <div className="emr-mast" style={{ display: "grid", gridTemplateColumns: "1fr auto auto", borderBottom: `1px solid ${FUND.line}`, fontSize: 13, color: FUND.muted }}>
+          <div style={{ padding: "9px 22px" }}>A public record of where things are made in Europe</div>
+          <div style={{ padding: "9px 16px", borderLeft: `1px solid ${FUND.hairline}`, fontVariantNumeric: "tabular-nums" }}>{registry.length} entries</div>
+          <div style={{ padding: "9px 22px 9px 16px", borderLeft: `1px solid ${FUND.hairline}` }}>Vol. 03 · Sept 2026</div>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto" }} onMouseLeave={() => setCursor(null)}>
+          {places.map((e) => {
+            const on = shown?.id === e.id;
+            return (
+              <div
+                className="emr-place-row"
+                key={e.id}
+                onMouseEnter={() => setCursor(e)}
+                onClick={() => onSelect(e)}
+                style={{
+                  display: "grid", gridTemplateColumns: "1fr auto auto",
+                  alignItems: "baseline", gap: 16,
+                  padding: "9px 22px",
+                  borderBottom: `1px solid ${FUND.hairline}`,
+                  cursor: "pointer",
+                  background: on ? "#f2f0eb" : "transparent",
+                }}
+              >
+                <span className="emr-place-name" style={{ fontSize: 30, lineHeight: 1.06, letterSpacing: "-0.02em" }}>{e.place}</span>
+                <span style={{ fontSize: 13, color: FUND.muted, textTransform: "capitalize" }}>{e.material}</span>
+                <span style={{ fontSize: 13, color: FUND.muted, fontVariantNumeric: "tabular-nums", minWidth: 30, textAlign: "right" }}>{e.country}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ borderTop: `1px solid ${FUND.line}`, padding: "10px 22px", display: "flex", justifyContent: "space-between", fontSize: 12, color: FUND.muted }}>
+          <span>© 2026 EMR</span>
+          <span>registry@emr.eu</span>
+        </div>
+      </div>
+
+      <div onClick={() => shown && onSelect(shown)} style={{ position: "relative", background: "#111", overflow: "hidden", cursor: "pointer" }}>
+        <div style={{ position: "absolute", inset: 0, background: `#111 url(${img}) center/cover no-repeat` }} />
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "22px", color: "#fff", display: "grid", gap: 3, background: "linear-gradient(to top, rgba(0,0,0,0.55), transparent)" }}>
+          <div style={{ fontSize: 26, lineHeight: 1.1, letterSpacing: "-0.015em" }}>{shown?.name}</div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", textTransform: "capitalize" }}>
+            {shown?.material} · {shown?.process} · {shown?.region}, {window.COUNTRY_NAMES[shown?.country]} · est. {shown?.founded}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FundDetail({ entry, onClose, backLabel, setScreen }) {
+  if (!entry) return null;
+  const img = window.__entryImg(entry);
+  const img2 = window.__entryImg2(entry);
+  const art = /^[aeiou]/i.test(entry.scale) ? "an" : "a";
+  const noun = entry.process === "quarried" ? "quarry"
+    : entry.process === "extracted" ? "pit"
+    : entry.process === "sawn" ? "sawmill"
+    : /^(spun|fulled)$/.test(entry.process) ? "mill"
+    : entry.material === "paper" ? "mill"
+    : entry.scale === "industrial" ? "works"
+    : "workshop";
+  const age = new Date().getFullYear() - entry.founded;
+  const verb = /^(quarried|extracted)$/.test(entry.process) ? "yielded" : "made";
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 100 }}>
+      <div className="emr-detail-shell" onClick={(e) => e.stopPropagation()} style={{ position: "fixed", inset: 0, background: FUND.paper, color: FUND.ink, display: "flex", flexDirection: "column", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
+
+        <div className="emr-detail-meta" style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr auto", borderBottom: `1px solid ${FUND.line}`, fontSize: 15 }}>
+          <button onClick={() => { onClose(); setScreen && setScreen("landing"); }} style={{ padding: "14px 22px", borderRight: `1px solid ${FUND.line}`, display: "flex", alignItems: "center", gap: 6, background: "transparent", border: "none", borderRight: `1px solid ${FUND.line}`, cursor: "pointer", fontFamily: "inherit", fontSize: 15, color: FUND.ink, textAlign: "left" }}><img src={window.__logo()} alt="" style={{ height: 20, width: "auto", display: "block", flex: "none", transform: "scaleX(-1)" }} />European Material Registry</button>
+          <div style={{ padding: "14px 22px", borderRight: `1px solid ${FUND.line}`, fontVariantNumeric: "tabular-nums" }}>Est. {entry.founded} · Reg. {entry.id}</div>
+          <div style={{ padding: "14px 22px", borderRight: `1px solid ${FUND.line}` }}>{entry.place}, {window.COUNTRY_NAMES[entry.country]}</div>
+          <button onClick={onClose} style={{ padding: "0 22px", background: "transparent", border: "none", cursor: "pointer", fontSize: 16, fontFamily: "inherit" }}>✕</button>
+        </div>
+
+        <div className="emr-detail-sub" style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", borderBottom: `1px solid ${FUND.line}`, fontSize: 14, color: FUND.muted, background: "#fafaf7" }}>
+          <div style={{ padding: "10px 22px", borderRight: `1px solid ${FUND.line}`, textTransform: "capitalize" }}>Material · {entry.material}</div>
+          <div style={{ padding: "10px 22px", color: FUND.ink }}>{entry.name}</div>
+          {backLabel && (
+            <button onClick={onClose} style={{ padding: "10px 22px", borderLeft: `1px solid ${FUND.line}`, background: "transparent", border: "none", borderLeft: `1px solid ${FUND.line}`, cursor: "pointer", fontFamily: "inherit", fontSize: 14, color: FUND.ink, textDecoration: "underline", textUnderlineOffset: 3 }}>
+              ← {backLabel}
+            </button>
+          )}
+        </div>
+
+        <div className="emr-detail-body" style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", overflow: "hidden" }}>
+          <div style={{ display: "grid", gridTemplateRows: img2 ? "1fr 1fr" : "1fr", borderRight: `1px solid ${FUND.line}` }}>
+            <div style={{ background: `#222 url(${img}) center/cover no-repeat`, position: "relative", borderBottom: img2 ? `1px solid ${FUND.line}` : "none", overflow: "hidden" }}>
+              <div style={{ position: "absolute", bottom: 14, left: 16, fontSize: 11, color: "rgba(255,255,255,0.95)", background: "rgba(0,0,0,0.35)", padding: "3px 8px" }}>Origin · {entry.place}</div>
+            </div>
+            {img2 && (
+              <div style={{ background: `#222 url(${img2}) center/cover no-repeat`, position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", bottom: 14, left: 16, fontSize: 11, color: "rgba(255,255,255,0.95)", background: "rgba(0,0,0,0.35)", padding: "3px 8px" }}>Process · {entry.process}</div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ flex: 1, padding: "24px 28px", overflowY: "auto", fontSize: 16, lineHeight: 1.55, textWrap: "pretty" }}>
+              <p style={{ margin: "0 0 18px" }}>
+                {entry.name} is {art} {entry.scale} producer operating in {entry.region}, {window.COUNTRY_NAMES[entry.country]}, with continuous activity since {entry.founded}. {entry.blurb}
+              </p>
+              <p style={{ margin: "0 0 18px" }}>
+                The {noun} is listed for {entry.material}. Process on record: {entry.process}. Certifications on file: {entry.certs.join(", ")}.
+              </p>
+              <p style={{ margin: 0, color: FUND.muted, paddingLeft: 14, borderLeft: `2px solid ${FUND.line}` }}>
+                {age > 100
+                  ? `"${entry.place} has ${verb} ${entry.material} for generations. To source from here is to participate in a continuity that predates most of the buildings around it."`
+                  : `"${entry.place} has supplied ${entry.material} since ${entry.founded}."`}
+                <br/><span style={{ fontSize: 13 }}>— EMR archivist note, 2026</span>
+              </p>
+            </div>
+
+            <div style={{ borderTop: `1px solid ${FUND.line}`, display: "grid", gridTemplateColumns: "1fr auto", padding: "12px 28px", alignItems: "center" }}>
+              <div style={{ fontSize: 16 }}>Sourcing</div>
+              <button style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 16, fontFamily: "inherit" }}>›</button>
+            </div>
+            <div className="emr-sourcing" style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr", borderTop: `1px solid ${FUND.line}`, fontSize: 13, color: FUND.muted }}>
+              <div style={{ padding: "14px 28px", lineHeight: 1.55 }}>
+                {entry.name}<br/>
+                {entry.region}, {window.COUNTRY_NAMES[entry.country]}<br/>
+                {entry.material} · {entry.process}<br/>
+                <span style={{ textTransform: "capitalize" }}>{entry.scale}</span>
+              </div>
+              <div style={{ padding: "14px 22px", lineHeight: 1.55, fontVariantNumeric: "tabular-nums" }}>
+                Lead time<br/>4–12 weeks<br/>Samples on request
+              </div>
+              <div style={{ padding: "14px 22px", lineHeight: 1.55 }}>
+                Registry ref. {entry.id}<br/>Public entry<br/>Last audit 03 / 2026
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { FundLanding, FundDetail });
+</script>
+<script type="text/babel" data-source="components/fund_geography.jsx">
+function FundGeography({ entries, filtered, query, setQuery, filters, setFilters, selected, setSelected, hover, setHover }) {
+  const allMats = ["all","steel","ceramic","glass","wool","wood","stone","paper"];
+
+  function toggleMat(m) {
+    setFilters(f => ({ ...f, material: f.material === m ? "all" : m }));
+  }
+
+  const byCountry = {};
+  filtered.forEach(e => {
+    if (!byCountry[e.country]) byCountry[e.country] = [];
+    byCountry[e.country].push(e);
+  });
+  const countryKeys = Object.keys(byCountry).sort((a,b) =>
+    (window.COUNTRY_NAMES[a] || a).localeCompare(window.COUNTRY_NAMES[b] || b)
+  );
+
+  return (
+    <div className="emr-split emr-split-map" style={{ display: "grid", gridTemplateColumns: "minmax(420px, 1fr) 1.6fr", height: "calc(100vh - 51px)", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", background: FUND.paper }}>
+
+      <div style={{ display: "flex", flexDirection: "column", borderRight: `1px solid ${FUND.line}`, overflow: "hidden" }}>
+        <div style={{ borderBottom: `1px solid ${FUND.line}`, padding: "10px 22px" }}>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search place, region, country…"
+            style={{ width: "100%", border: "none", outline: "none", background: "transparent", fontSize: 15, fontFamily: "inherit", padding: "4px 0" }}
+          />
+        </div>
+        <div style={{ borderBottom: `1px solid ${FUND.line}`, padding: "10px 22px", fontSize: 14, lineHeight: 1.5, display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16 }}>
+          <div>
+          {allMats.map((m, i) => (
+            <span key={m}>
+              <button
+                onClick={() => toggleMat(m)}
+                style={{
+                  background: "transparent", border: "none", padding: 0, cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 14, color: FUND.ink,
+                  textDecoration: filters.material === m ? "underline" : "none",
+                  textUnderlineOffset: 3,
+                }}
+              >
+                {m === "all" ? "All" : m.charAt(0).toUpperCase() + m.slice(1)}
+              </button>
+              {i < allMats.length - 1 && <span>, </span>}
+            </span>
+          ))}
+          </div>
+          <span style={{ color: FUND.muted, fontSize: 13, whiteSpace: "nowrap" }}>{filtered.length} makers</span>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          {countryKeys.map(cc => (
+            <div key={cc}>
+              <div style={{ padding: "16px 22px 6px", fontSize: 12, color: FUND.muted, letterSpacing: "0.04em", textTransform: "uppercase", borderTop: `1px solid ${FUND.hairline}` }}>
+                {window.COUNTRY_NAMES[cc]} <span style={{ opacity: 0.6 }}>· {cc}</span>
+              </div>
+              {byCountry[cc].map(e => (
+                <div
+                  key={e.id}
+                  onMouseEnter={() => setHover(e)}
+                  onMouseLeave={() => setHover(null)}
+                  onClick={() => setSelected(e)}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1.3fr 1fr",
+                    padding: "10px 22px",
+                    cursor: "pointer",
+                    background: (selected?.id === e.id || hover?.id === e.id) ? "#f2f0eb" : "transparent",
+                    fontSize: 14,
+                    alignItems: "center",
+                  }}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <span>{e.place}</span>
+                    <span style={{ color: FUND.muted, fontSize: 12 }}>{e.region}</span>
+                  </div>
+                  <div style={{ color: FUND.muted, textTransform: "capitalize", fontSize: 13 }}>
+                    {e.material} · {e.process}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <div style={{ padding: "40px 22px", color: FUND.muted, fontSize: 13 }}>No entries match these filters.</div>
+          )}
+        </div>
+
+        <div style={{ borderTop: `1px solid ${FUND.line}`, padding: "10px 22px", display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, color: FUND.muted, whiteSpace: "nowrap" }}>
+          <span>© 2026 EMR</span>
+          <span>Map · Europe</span>
+        </div>
+      </div>
+
+      <div style={{ background: "#ffffff", position: "relative", overflow: "hidden" }}>
+        <MapView
+          entries={filtered}
+          onSelect={setSelected}
+          hover={hover} setHover={setHover}
+          selected={selected}
+        />
+        {hover && (
+          <div style={{ position: "absolute", bottom: 22, left: 22, background: "#fff", border: `1px solid ${FUND.line}`, padding: "10px 14px", maxWidth: 320 }}>
+            <div style={{ fontSize: 12, color: FUND.muted, marginBottom: 2 }}>{hover.id} · {window.COUNTRY_NAMES[hover.country]}</div>
+            <div style={{ fontSize: 18 }}>{hover.place}</div>
+            <div style={{ fontSize: 12, marginTop: 2, color: FUND.muted, textTransform: "capitalize" }}>{hover.material} · {hover.process}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { FundGeography });
+</script>
+<script type="text/babel" data-source="components/fund_submit.jsx">
+function FundSubmit({ setScreen, registry, showGrid, onSelect }) {
+  const [form, setForm] = React.useState({ place: "", region: "", country: "", name: "", material: "", process: "", scale: "", founded: "", blurb: "", email: "", imageName: "", imageUrl: "" });
+  const [sent, setSent] = React.useState(false);
+  const mats = ["steel","ceramic","glass","wool","wood","stone","paper"];
+  const scales = ["artisan","small-batch","industrial"];
+  function up(k, v) { setForm(f => ({ ...f, [k]: v })); }
+  const ready = form.place && form.country && form.name && form.material && form.email;
+
+  return (
+    <div className="emr-split" style={{ display: "grid", gridTemplateColumns: showGrid ? "minmax(480px, 1fr) 1.3fr" : "1fr", height: "calc(100vh - 51px)", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", background: FUND.paper }}>
+      <div style={{ display: "flex", flexDirection: "column", borderRight: showGrid ? `1px solid ${FUND.line}` : "none", overflow: "hidden" }}>
+        <div style={{ borderBottom: `1px solid ${FUND.line}`, padding: "10px 22px", fontSize: 15 }}>Submit a maker</div>
+        <div style={{ borderBottom: `1px solid ${FUND.line}`, padding: "10px 22px", fontSize: 13, color: FUND.muted, lineHeight: 1.5 }}>
+          Reviewed by an archivist within 14 days. By submitting, you agree the entry becomes public.
+        </div>
+
+        {sent ? (
+          <div style={{ flex: 1, padding: "22px", fontSize: 15, lineHeight: 1.55 }}>
+            <div style={{ marginBottom: 10 }}>Queued for review.</div>
+            <div style={{ color: FUND.muted, fontSize: 14, marginBottom: 20 }}>
+              {form.name} — {form.place}, {form.country}. Audit trail sent to {form.email}.
+            </div>
+            <button onClick={() => setScreen("registry")} style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 15, color: FUND.ink, textDecoration: "underline", textUnderlineOffset: 3 }}>
+              Back to the Index →
+            </button>
+          </div>
+        ) : (
+          <React.Fragment>
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              <FundField label="Maker / atelier *" value={form.name} onChange={v => up("name", v)} placeholder="Full trade name" />
+              <FundField label="Place *" value={form.place} onChange={v => up("place", v)} placeholder="Town or city" />
+              <FundField label="Region" value={form.region} onChange={v => up("region", v)} placeholder="County, province, or län" />
+              <FundField label="Country code *" value={form.country} onChange={v => up("country", v.toUpperCase().slice(0,2))} placeholder="Two letters, e.g. IS" />
+              <FundPick label="Material *" value={form.material} options={mats} onChange={v => up("material", v)} />
+              <FundField label="Process" value={form.process} onChange={v => up("process", v)} placeholder="e.g. mouth-blown, quarried, spun" />
+              <FundPick label="Scale" value={form.scale} options={scales} onChange={v => up("scale", v)} />
+              <FundField label="Year established" value={form.founded} onChange={v => up("founded", v.replace(/\D/g, "").slice(0,4))} placeholder="e.g. 1896" />
+              <FundField label="Description" value={form.blurb} onChange={v => up("blurb", v)} placeholder="One sentence: what they make, and how" area />
+              <FundImage
+                label="Photograph"
+                name={form.imageName}
+                url={form.imageUrl}
+                onPick={(file) => {
+                  if (!file) return;
+                  if (form.imageUrl) URL.revokeObjectURL(form.imageUrl);
+                  setForm(f => ({ ...f, imageName: file.name, imageUrl: URL.createObjectURL(file) }));
+                }}
+                onClear={() => {
+                  if (form.imageUrl) URL.revokeObjectURL(form.imageUrl);
+                  setForm(f => ({ ...f, imageName: "", imageUrl: "" }));
+                }}
+              />
+              <FundField label="Your email *" value={form.email} onChange={v => up("email", v)} placeholder="For the audit trail" />
+            </div>
+            <div style={{ borderTop: `1px solid ${FUND.line}`, padding: "12px 22px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 12, color: FUND.muted }}>{ready ? "Ready to submit" : "[*Name, place, country, material, and email required]"}</span>
+              <button
+                onClick={() => ready && setSent(true)}
+                style={{ background: "transparent", border: "none", padding: 0, cursor: ready ? "pointer" : "not-allowed", fontFamily: "inherit", fontSize: 15, color: ready ? FUND.ink : FUND.muted, textDecoration: ready ? "underline" : "none", textUnderlineOffset: 3 }}
+              >
+                Submit entry →
+              </button>
+            </div>
+          </React.Fragment>
+        )}
+      </div>
+
+      {showGrid && (
+        <div style={{ background: FUND.canvas, overflowY: "auto", padding: 22 }}>
+          <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, marginBottom: 14 }}>Already in the registry</div>
+          <FundGallery entries={registry.slice(0, 6)} onSelect={onSelect} hover={null} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FundField({ label, value, onChange, placeholder, area }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "0.8fr 1.2fr", borderBottom: `1px solid ${FUND.hairline}`, alignItems: "start", minHeight: 44 }}>
+      <div style={{ padding: "13px 0 13px 22px", fontSize: 14, color: FUND.ink }}>{label}</div>
+      {area ? (
+        <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows="3"
+          style={{ padding: "12px 22px 12px 0", border: "none", outline: "none", background: "transparent", fontSize: 14, fontFamily: "inherit", color: FUND.ink, resize: "vertical", lineHeight: 1.5 }} />
+      ) : (
+        <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+          style={{ padding: "13px 22px 13px 0", border: "none", outline: "none", background: "transparent", fontSize: 14, fontFamily: "inherit", color: FUND.ink }} />
+      )}
+    </div>
+  );
+}
+
+function FundPick({ label, value, options, onChange }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "0.8fr 1.2fr", borderBottom: `1px solid ${FUND.hairline}`, alignItems: "center", minHeight: 44 }}>
+      <div style={{ padding: "13px 0 13px 22px", fontSize: 14, color: FUND.ink }}>{label}</div>
+      <div style={{ padding: "13px 22px 13px 0", fontSize: 14, lineHeight: 1.6 }}>
+        {options.map((o, i) => (
+          <span key={o}>
+            <button onClick={() => onChange(value === o ? "" : o)}
+              style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 14, color: value === o ? FUND.ink : FUND.muted, textDecoration: value === o ? "underline" : "none", textUnderlineOffset: 3, textTransform: "capitalize" }}>
+              {o}
+            </button>
+            {i < options.length - 1 && <span style={{ color: FUND.muted }}>, </span>}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FundImage({ label, name, url, onPick, onClear }) {
+  const ref = React.useRef(null);
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "0.8fr 1.2fr", borderBottom: `1px solid ${FUND.hairline}`, alignItems: "center", minHeight: 44 }}>
+      <div style={{ padding: "13px 0 13px 22px", fontSize: 14, color: FUND.ink }}>{label}</div>
+      <div style={{ padding: "10px 22px 10px 0", fontSize: 14, display: "flex", alignItems: "center", gap: 12 }}>
+        <input ref={ref} type="file" accept="image/*" onChange={e => onPick(e.target.files && e.target.files[0])} style={{ display: "none" }} />
+        {url && <div style={{ width: 46, height: 34, background: `#eee url(${url}) center/cover no-repeat`, flexShrink: 0 }} />}
+        <button onClick={() => ref.current && ref.current.click()}
+          style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 14, color: FUND.ink, textDecoration: "underline", textUnderlineOffset: 3, flexShrink: 0 }}>
+          {name ? "Replace" : "Choose a file"}
+        </button>
+        <span style={{ color: FUND.muted, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {name || "Of the material or the workshop"}
+        </span>
+        {name && (
+          <button onClick={onClear} style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: FUND.muted, marginLeft: "auto", flexShrink: 0 }}>✕</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { FundSubmit, FundField, FundPick, FundImage });
+</script>
+<script type="text/babel" data-source="components/app.jsx">
+const { useState: useStateApp, useEffect: useEffectApp, useMemo: useMemoApp } = React;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "showMap": true,
+  "variant": "A"
+}/*EDITMODE-END*/;
+
+function App() {
+  const [screen, setScreen] = useStateApp(() => localStorage.getItem("emr_screen") || "landing");
+  const [query, setQuery] = useStateApp("");
+  const [filters, setFilters] = useStateApp({ material: "all", scale: "all" });
+  const [hover, setHover] = useStateApp(null);
+  const [selected, setSelected] = useStateApp(null);
+  const [view, setView] = useStateApp("list"); // list | map
+  const [lang, setLang] = useStateApp("EN");
+  const [tweaks, setTweaks] = useStateApp(TWEAK_DEFAULTS);
+  const [tweaksOpen, setTweaksOpen] = useStateApp(false);
+
+  useEffectApp(() => { localStorage.setItem("emr_screen", screen); }, [screen]);
+
+  useEffectApp(() => {
+    function handler(e) {
+      if (e.data?.type === "__activate_edit_mode") setTweaksOpen(true);
+      if (e.data?.type === "__deactivate_edit_mode") setTweaksOpen(false);
+    }
+    window.addEventListener("message", handler);
+    window.parent.postMessage({ type: "__edit_mode_available" }, "*");
+    return () => window.removeEventListener("message", handler);
+  }, []);
+
+  function updateTweak(k, v) {
+    const next = { ...tweaks, [k]: v };
+    setTweaks(next);
+    window.parent.postMessage({ type: "__edit_mode_set_keys", edits: { [k]: v } }, "*");
+  }
+
+  const entries = window.REGISTRY;
+  const filtered = useMemoApp(() => filterEntries(entries, query, filters), [entries, query, filters]);
+
+  const variantClass = tweaks.variant === "B" ? "variant-b" : "";
+
+  return (
+    <div className={`${variantClass}`} style={{ minHeight: "100vh", position: "relative", background: "#fff" }} data-screen-label={`EMR / ${screen}`}>
+      <FundNav screen={screen} setScreen={setScreen} />
+
+      {screen === "landing" && <FundLanding setScreen={setScreen} registry={entries} onSelect={setSelected} />}
+
+      {screen === "registry" && (
+        <FundRegistry
+          filtered={filtered} total={entries.length}
+          query={query} setQuery={setQuery}
+          filters={filters} setFilters={setFilters}
+          hover={hover} setHover={setHover}
+          selected={selected} setSelected={setSelected}
+          showGrid={tweaks.showMap}
+        />
+      )}
+
+      {screen === "map" && (
+        <FundGeography
+          entries={entries} filtered={filtered}
+          query={query} setQuery={setQuery}
+          filters={filters} setFilters={setFilters}
+          hover={hover} setHover={setHover}
+          selected={selected} setSelected={setSelected}
+        />
+      )}
+
+      {screen === "submit" && <FundSubmit setScreen={setScreen} registry={entries} showGrid={tweaks.showMap} onSelect={setSelected} />}
+
+      <FundDetail entry={selected} onClose={() => setSelected(null)} setScreen={setScreen} backLabel={screen === "submit" ? "Back to submit a maker" : screen === "landing" ? "Back to the registry" : null} />
+
+      {tweaksOpen && (
+        <div style={{ position: "fixed", right: 18, bottom: 18, zIndex: 90, background: "#fff", color: "#111", border: "1px solid #111", padding: "7px 10px", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", fontSize: 12, display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ color: "#6b6b6b" }}>Side gallery</span>
+          <button
+            onClick={() => updateTweak("showMap", !tweaks.showMap)}
+            style={{ width: 26, height: 14, border: "1px solid #111", background: tweaks.showMap ? "#111" : "transparent", position: "relative", cursor: "pointer", padding: 0 }}
+          >
+            <span style={{ position: "absolute", top: 1, left: tweaks.showMap ? 13 : 1, width: 10, height: 10, background: tweaks.showMap ? "#fff" : "#111", transition: "left 120ms" }} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TopNav({ screen, setScreen, lang, setLang }) {
+  const items = [
+    { id: "landing", label: "Atlas" },
+    { id: "registry", label: "Index" },
+    { id: "map", label: "Map" },
+    { id: "submit", label: "Submit" },
+  ];
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "stretch", borderBottom: "1px solid var(--line)", background: "var(--paper)", position: "sticky", top: 0, zIndex: 50 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "0 16px", borderRight: "1px solid var(--line)" }}>
+        <button onClick={() => setScreen("landing")} style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ display: "inline-block", width: 14, height: 14, background: "var(--ink)", transform: "rotate(45deg)" }} />
+          <span className="mono" style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase" }}>EMR · European Material Registry</span>
+        </button>
+      </div>
+      <div style={{ display: "flex" }}>
+        {items.map((it) => (
+          <button key={it.id} onClick={() => setScreen(it.id)}
+            style={{
+              padding: "10px 18px", borderLeft: "1px solid var(--line)", background: screen === it.id ? "var(--ink)" : "transparent",
+              color: screen === it.id ? "var(--bone)" : "var(--ink)", border: "none", borderLeft: "1px solid var(--line)",
+              fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", fontWeight: 500, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer"
+            }}>
+            {it.label}
+          </button>
+        ))}
+        <div style={{ borderLeft: "1px solid var(--line)", padding: "6px 10px", display: "flex", alignItems: "center" }}>
+          <LangSwitcher lang={lang} setLang={setLang} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RegistryScreen({ filtered, total, query, setQuery, filters, setFilters, view, setView, hover, setHover, selected, setSelected, showMap }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: showMap && view === "list" ? "1fr 420px" : "1fr", gap: 0, height: "calc(100vh - 42px)" }}>
+      <div style={{ borderRight: showMap && view === "list" ? "1px solid var(--line)" : "none", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--line)", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div>
+            <div className="mono" style={{ fontSize: 10, letterSpacing: "0.16em", marginBottom: 4 }}>ATLAS / VOL.03</div>
+            <h2 style={{ fontSize: 38, fontWeight: 500, letterSpacing: "-0.02em", margin: 0, lineHeight: 1.1, paddingBottom: 4 }}>
+              The Index
+            </h2>
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button className={`pill ${view === "list" ? "active" : ""}`} onClick={() => setView("list")}>List</button>
+            <button className={`pill ${view === "map" ? "active" : ""}`} onClick={() => setView("map")}>Map</button>
+          </div>
+        </div>
+
+        <FilterBar
+          filters={filters} setFilters={setFilters}
+          query={query} setQuery={setQuery}
+          results={filtered.length} total={total}
+        />
+
+        <div style={{ flex: 1, overflowY: "auto", position: "relative" }}>
+          {view === "list" ? (
+            <>
+              <RegistryHeaderRow />
+              {filtered.map((e, i) => (
+                <RegistryRow
+                  key={e.id} entry={e} index={i}
+                  onHover={setHover}
+                  onSelect={setSelected}
+                  selected={selected?.id === e.id}
+                />
+              ))}
+              {filtered.length === 0 && (
+                <div style={{ padding: 60, textAlign: "center" }}>
+                  <div className="mono" style={{ fontSize: 11, letterSpacing: "0.16em", opacity: 0.6 }}>NO ENTRIES MATCH THESE PARAMETERS</div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ height: "100%" }}>
+              <MapView entries={filtered} onSelect={setSelected} hover={hover} setHover={setHover} selected={selected} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showMap && view === "list" && (
+        <div style={{ display: "flex", flexDirection: "column", borderLeft: "1px solid var(--line)" }}>
+          <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--line)", display: "flex", justifyContent: "space-between" }}>
+            <span className="mono" style={{ fontSize: 10, letterSpacing: "0.16em" }}>LIVE MAP · HOVER TO LOCATE</span>
+            <span className="mono" style={{ fontSize: 10, letterSpacing: "0.1em", opacity: 0.6 }}>{filtered.length} PINS</span>
+          </div>
+          <div style={{ flex: 1, position: "relative" }}>
+            <MapView entries={filtered} onSelect={setSelected} hover={hover} setHover={setHover} selected={selected} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+
+</body>
+</html>
