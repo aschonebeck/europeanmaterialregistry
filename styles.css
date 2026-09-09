@@ -56,6 +56,12 @@ a:hover { color: var(--muted); }
 input::placeholder,
 textarea::placeholder { color: #9a9a94; opacity: 1; }
 
+/* The loader's mark fading up from the paper. Declared here rather than driven
+   from script: requestAnimationFrame is suspended in a backgrounded tab while
+   timers keep running, so anything that gates visibility on a frame callback
+   can fail to appear at all. */
+@keyframes emr-rise { from { opacity: 0; } to { opacity: 1; } }
+
 
 /* 3. MAP ===================================================================
    Leaflet ships its own chrome. These rules strip it back to the registry's
@@ -180,6 +186,14 @@ textarea::placeholder { color: #9a9a94; opacity: 1; }
     background: transparent !important;
   }
   .emr-place-name { font-size: 23px !important; }
+
+  /* The homepage's second panel is a cursor preview — it shows whatever the
+     pointer is over, and defaults to the first entry. A phone has no pointer,
+     so it can only ever show that default. It also carries no intrinsic
+     height, its caption being absolutely positioned, so stacked it collapsed
+     to a 1px sliver of crushed text at the foot of the page. Tapping a place
+     opens the full detail view, which is the better answer on touch anyway. */
+  .emr-landing-preview { display: none !important; }
 
   /* --- Index -------------------------------------------------------------- */
   /* Lead with the photographs: a phone shows one column at a time, and the
